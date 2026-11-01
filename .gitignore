@@ -1,0 +1,24 @@
+# ESP-IDF build output and downloaded components
+build/
+managed_components/
+
+# Generated config. sdkconfig.defaults + Kconfig.projbuild are the source of truth, and
+# sdkconfig holds the default Wi-Fi password if one is set in menuconfig.
+sdkconfig
+sdkconfig.old
+
+# Flash dumps (backup.bin is the original firmware: proprietary code + saved Wi-Fi credentials)
+*.bin
+*.elf
+*.map
+
+# Editors, tools, OS
+.vscode/
+.idea/
+.cache/
+.claude/settings.local.json
+__pycache__/
+*.pyc
+*.swp
+*~
+.DS_Store

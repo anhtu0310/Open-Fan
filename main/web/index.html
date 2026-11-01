@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f4f4f2">
+<title>Open Fan</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f4f2;--card:#fcfcfb;--line:#e3e2de;--soft:#efeeea;
+  --ink:#0b0b0b;--ink2:#52514e;--ink3:#7d7c77;
+  --accent:#2a78d6;--accent-ink:#fff;
+  --temp:#eb6834;--hum:#2a78d6;--fan:#a9a8a2;--grid:#ebeae6;
+  --good:#0ca30c;--warn:#b07800;--bad:#d03b3b;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    color-scheme:dark;
+    --bg:#111110;--card:#1a1a19;--line:#2e2e2b;--soft:#252523;
+    --ink:#f0efec;--ink2:#c3c2b7;--ink3:#8e8d86;
+    --accent:#3987e5;--accent-ink:#fff;
+    --temp:#d95926;--hum:#3987e5;--fan:#5d5c57;--grid:#262624;
+    --good:#0ca30c;--warn:#fab219;--bad:#e66767;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+main{max-width:600px;margin:0 auto;padding:12px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 14px}
+h1{font-size:20px;margin:0;font-weight:650;letter-spacing:-.01em}
+h2{font-size:13px;margin:0 0 12px;font-weight:600;color:var(--ink2);text-transform:uppercase;letter-spacing:.06em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:12px}
+.pill{font-size:12px;padding:4px 10px;border-radius:99px;background:var(--soft);color:var(--ink2);white-space:nowrap}
+.pill.off{color:var(--bad)}
+.muted{color:var(--ink3)}.small{font-size:13px}
+.row{display:flex;align-items:center;gap:10px}
+.between{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--soft);border-radius:10px;padding:8px 14px;min-height:40px}
+button:active{transform:scale(.98)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.link{background:none;border:none;padding:4px;min-height:0;color:var(--accent)}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.5;cursor:default}
+input[type=number],input[type=text],input[type=password],input[type=time],select{
+  background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-height:40px;min-width:0}
+input[type=number]{width:84px}
+label{user-select:none}
+/* power */
+.hero{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+#power{width:76px;height:76px;border-radius:50%;padding:0;flex:none;display:grid;place-items:center;
+  background:var(--soft);border:2px solid var(--line);transition:background .15s}
+#power svg{width:30px;height:30px}
+#power.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#fanState{font-size:22px;font-weight:650}
+/* segmented */
+.seg{display:flex;background:var(--soft);border-radius:11px;padding:3px;gap:3px}
+.seg button{flex:1;border:none;background:none;min-height:36px;padding:6px 8px;border-radius:8px;color:var(--ink2)}
+.seg button.sel{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:600}
+.speeds{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.speeds button{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.speeds b{font-size:20px}.speeds span{font-size:11px;color:var(--ink3)}
+.speeds button.sel{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.speeds button.sel span{color:inherit;opacity:.8}
+#pwmPanel{margin-top:14px}
+#pwmVal{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:12px 0 4px;accent-color:var(--accent);height:28px}
+.range-ends{display:flex;justify-content:space-between;font-size:12px;color:var(--ink3)}
+/* switch */
+.switch{position:relative;width:46px;height:28px;flex:none}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch span{position:absolute;inset:0;background:var(--line);border-radius:99px;transition:.15s;cursor:pointer}
+.switch span:after{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;
+  transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.switch input:checked+span{background:var(--accent)}
+.switch input:checked+span:after{transform:translateX(18px)}
+.switch input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.line-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.line-row:first-of-type{border-top:none}
+/* chips */
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px}
+.chips button{min-height:36px;padding:6px 8px;border-radius:99px}
+/* sensors */
+.rooms{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin:0 -2px 12px;scrollbar-width:none}
+.room{flex:none;text-align:left;min-width:124px;padding:10px 12px;border-radius:12px;display:block}
+.room.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.room .n{font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.room .t{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.room .h{font-size:12px;color:var(--ink3)}
+.room.stale .t{color:var(--ink3)}
+/* chart */
+.chart{position:relative;touch-action:pan-y;user-select:none}
+.lane-title{font-size:12px;color:var(--ink2);margin:10px 0 2px;display:flex;justify-content:space-between}
+canvas{display:block;width:100%}
+#tip{position:absolute;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:8px 10px;font-size:12px;box-shadow:0 4px 14px rgba(0,0,0,.14);display:none;white-space:nowrap;z-index:2}
+#tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:0}
+.empty{padding:28px 8px;text-align:center;color:var(--ink3);font-size:14px}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+td,th{padding:4px 6px;text-align:right;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+details>summary{cursor:pointer;color:var(--ink2);font-size:14px;padding:4px 0;list-style:none}
+details>summary::-webkit-details-marker{display:none}
+details>summary:before{content:"›";display:inline-block;width:14px;transition:transform .15s}
+details[open]>summary:before{transform:rotate(90deg)}
+.sub{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+.sub h3{font-size:14px;margin:0 0 8px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.kv dt{color:var(--ink3)}.kv dd{margin:0;overflow-wrap:anywhere}
+.status{font-size:13px;padding:10px 12px;border-radius:10px;background:var(--soft);margin-top:12px}
+.status b{font-weight:600}
+.banner{background:var(--accent);color:var(--accent-ink);border-radius:var(--r);padding:12px 16px;margin-bottom:12px;display:none}
+.banner button{background:rgba(255,255,255,.18);border-color:transparent;color:inherit;margin-top:8px}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+#toast.show{opacity:1}
+.sensor-edit{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.sensor-edit:first-child{border-top:none}
+.sensor-edit input{flex:1}
+.ssid-list{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.ssid-list button{display:flex;justify-content:space-between;text-align:left}
+progress{width:100%;height:8px;margin-top:8px}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Open Fan</h1>
+  <span class="pill" id="net">…</span>
+</header>
+
+<div class="banner" id="setup">
+  <b>Setup mode.</b> Connect this fan to your Wi-Fi so it can be reached from your home network.
+  <div><button onclick="openWifi()">Set up Wi-Fi</button></div>
+</div>
+
+<section class="card" aria-label="Fan">
+  <div class="hero">
+    <button id="power" aria-label="Power" onclick="send({power:'toggle'})">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+    </button>
+    <div>
+      <div id="fanState">—</div>
+      <div class="muted small" id="fanSub"></div>
+    </div>
+  </div>
+  <div class="seg" role="tablist">
+    <button id="modePreset" onclick="send({mode:'preset'})">Speed</button>
+    <button id="modePwm" onclick="send({mode:'pwm'})">PWM</button>
+  </div>
+  <div class="speeds" id="speeds"></div>
+  <div id="pwmPanel" class="hidden">
+    <div class="row between"><span class="muted small">Speed signal</span><span id="pwmVal">—</span></div>
+    <input type="range" id="pwm" step="1" aria-label="PWM frequency">
+    <div class="range-ends"><span id="pwmMinL"></span><span id="pwmMaxL"></span></div>
+    <details style="margin-top:8px">
+      <summary>Slider range</summary>
+      <div class="row wrap" style="margin-top:8px">
+        <label class="small muted" for="pwmMin">Min</label><input type="number" id="pwmMin">
+        <label class="small muted" for="pwmMax">Max</label><input type="number" id="pwmMax">
+        <span class="small muted">Hz</span>
+        <button onclick="saveRange()">Save</button>
+      </div>
+      <p class="small muted" id="pwmHint" style="margin:8px 0 0"></p>
+    </details>
+  </div>
+  <div class="line-row" style="margin-top:12px">
+    <span>Swing</span>
+    <label class="switch"><input type="checkbox" id="swing" onchange="send({swing:this.checked?1:0})"><span></span></label>
+  </div>
+</section>
+
+<section class="card" aria-label="Timer">
+  <h2>Off timer</h2>
+  <div class="row between" style="margin-bottom:12px">
+    <div><div id="timerState" style="font-weight:600">No timer</div><div class="small muted" id="timerSub"></div></div>
+    <button class="link hidden" id="timerCancel" onclick="send({timer:0})">Cancel</button>
+  </div>
+  <div class="chips" id="timerChips"></div>
+  <div class="row" style="margin-top:12px">
+    <label class="small muted" for="timerAt">Off at</label>
+    <input type="time" id="timerAt">
+    <button onclick="setTimerAt()">Set</button>
+  </div>
+</section>
+
+<section class="card" aria-label="Climate">
+  <h2>Climate</h2>
+  <div class="rooms" id="rooms"></div>
+  <div id="chartBox">
+    <div class="row between">
+      <div class="seg" id="ranges" style="flex:1;max-width:240px"></div>
+    </div>
+    <div class="chart" id="chart">
+      <div class="lane-title"><span>Temperature, °C</span><span id="tNow"></span></div>
+      <canvas id="cT" height="170"></canvas>
+      <div class="lane-title"><span>Humidity, %</span><span id="hNow"></span></div>
+      <canvas id="cH" height="120"></canvas>
+      <div class="lane-title"><span>Fan</span></div>
+      <canvas id="cF" height="40"></canvas>
+      <div id="tip"></div>
+    </div>
+    <div class="empty hidden" id="chartEmpty"></div>
+    <details style="margin-top:10px" id="tableBox" ontoggle="if(this.open)renderTable()">
+      <summary>Show as table</summary>
+      <div id="table" style="max-height:280px;overflow:auto;margin-top:8px"></div>
+    </details>
+  </div>
+  <div class="empty hidden" id="noSensors">No thermometers heard yet.<br><span class="small">The fan listens for pvvx ATC_MiThermometer advertisements (ATC1441, Custom or BTHome, unencrypted).</span></div>
+</section>
+
+<section class="card" aria-label="Auto off">
+  <div class="row between"><h2 style="margin:0">Auto off when cool</h2>
+    <label class="switch"><input type="checkbox" id="ao" onchange="saveAuto()"><span></span></label></div>
+  <div id="aoBody">
+    <div class="line-row" style="border-top:none;margin-top:8px">
+      <label for="aoSensor">Thermometer</label>
+      <select id="aoSensor" onchange="saveAuto()" style="max-width:60%"></select>
+    </div>
+    <div class="line-row">
+      <span>Turn off below</span>
+      <span class="row"><input type="number" id="aoTemp" step="0.1" onchange="saveAuto()"> °C</span>
+    </div>
+    <div class="line-row">
+      <span>for at least</span>
+      <span class="row"><input type="number" id="hold" min="1" max="120" onchange="saveAuto()"> min</span>
+    </div>
+    <div class="line-row">
+      <span>Turn back on at or above</span>
+      <span class="row"><input type="number" id="arTemp" step="0.1" onchange="saveAuto()"> °C
+        <label class="switch"><input type="checkbox" id="ar" onchange="saveAuto()"><span></span></label></span>
+    </div>
+    <div class="status" id="aoStatus"></div>
+  </div>
+</section>
+
+<section class="card" aria-label="Settings">
+  <details id="settings">
+    <summary>Settings</summary>
+    <div class="sub">
+      <h3>Thermometers</h3>
+      <div id="sensorEdit"></div>
+    </div>
+    <div class="sub" id="wifiBox">
+      <h3>Wi-Fi</h3>
+      <dl class="kv" id="wifiInfo"></dl>
+      <div class="row" style="margin-top:10px"><button onclick="scanWifi()" id="scanBtn">Scan networks</button></div>
+      <div class="ssid-list" id="ssids"></div>
+      <div style="display:grid;gap:8px;margin-top:8px">
+        <input type="text" id="ssid" placeholder="Network name (SSID)" autocomplete="off" autocapitalize="none">
+        <input type="password" id="pass" placeholder="Password" autocomplete="off">
+        <div class="row"><button class="primary" onclick="saveWifi()">Save &amp; restart</button>
+          <button class="danger" onclick="forgetWifi()">Forget Wi-Fi</button></div>
+      </div>
+    </div>
+    <div class="sub">
+      <h3>Firmware</h3>
+      <dl class="kv" id="sysInfo"></dl>
+      <div class="row wrap" style="margin-top:10px">
+        <input type="file" id="fw" accept=".bin" style="max-width:100%">
+        <button onclick="uploadFw()">Update</button>
+      </div>
+      <progress id="fwProg" max="100" value="0" class="hidden"></progress>
+      <div class="row" style="margin-top:10px"><button onclick="reboot()">Restart</button></div>
+    </div>
+  </details>
+</section>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+let S = null;                 // last state
+let H = null;                 // history of the selected sensor
+let viewMac = localStorage.getItem('viewMac') || '';
+let rangeH = +localStorage.getItem('rangeH') || 12;
+let dragging = false, hover = -1;
+
+/* ---------- helpers ---------- */
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2600)}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function dur(s){s=Math.max(0,Math.round(s));if(s<60)return s+' s';const m=Math.round(s/60);if(m<60)return m+' min';const h=Math.floor(m/60),r=m%60;return h+' h'+(r?' '+r+' min':'')}
+function ago(s){return s<5?'just now':dur(s)+' ago'}
+function hm(d){return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+function editing(el){return document.activeElement===el}
+function sensorName(mac){const s=S&&S.sensors.find(x=>x.mac===mac);return s?s.name:mac}
+
+async function api(path, data){
+  const opt = data ? {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(data)} : {};
+  const r = await fetch(path, opt);
+  if(!r.ok){const m=await r.text();throw new Error(m||r.statusText)}
+  return r.json();
+}
+async function send(data){
+  try{render(await api('/api/control',data))}catch(e){toast(e.message)}
+}
+async function saveCfg(data){
+  try{render(await api('/api/config',data));toast('Saved')}catch(e){toast(e.message);poll()}
+}
+
+/* ---------- fan ---------- */
+const speedsEl = $('speeds');
+for(let i=1;i<=4;i++){
+  const b=document.createElement('button');b.id='sp'+i;b.innerHTML='<b>'+i+'</b><span></span>';
+  b.onclick=()=>send({speed:i});speedsEl.appendChild(b);
+}
+const pwm = $('pwm');
+let pwmSendT = 0;
+pwm.addEventListener('input',()=>{
+  dragging=true;showPwm(+pwm.value);
+  const now=Date.now();if(now-pwmSendT>200){pwmSendT=now;api('/api/control',{pwm:pwm.value}).catch(()=>{})}
+});
+pwm.addEventListener('change',async()=>{await send({pwm:pwm.value});dragging=false});
+function showPwm(v){
+  const c=S.cfg,pct=Math.round(100*(v-c.pwm_min)/(c.pwm_max-c.pwm_min));
+  $('pwmVal').textContent=v+' Hz · '+pct+'%';
+}
+function saveRange(){saveCfg({pwm_min:$('pwmMin').value,pwm_max:$('pwmMax').value})}
+
+/* ---------- timer ---------- */
+[[15,'15 min'],[30,'30 min'],[60,'1 h'],[120,'2 h'],[240,'4 h'],[480,'8 h']].forEach(([m,l])=>{
+  const b=document.createElement('button');b.textContent=l;b.onclick=()=>send({timer:m*60});$('timerChips').appendChild(b);
+});
+function setTimerAt(){
+  const v=$('timerAt').value;if(!v){toast('Pick a time');return}
+  const [h,m]=v.split(':').map(Number),now=new Date(),t=new Date(now);t.setHours(h,m,0,0);
+  if(t<=now)t.setDate(t.getDate()+1);
+  send({timer:Math.round((t-now)/1000)});
+}
+
+/* ---------- auto off ---------- */
+function saveAuto(){
+  saveCfg({ao:$('ao').checked?1:0,sensor:$('aoSensor').value,ao_temp:$('aoTemp').value,
+           hold:$('hold').value,ar:$('ar').checked?1:0,ar_temp:$('arTemp').value});
+}
+function autoText(){
+  const a=S.auto,c=S.cfg,s=S.sensors.find(x=>x.mac===c.sensor),name=s?esc(s.name):'the thermometer';
+  const t=s&&s.t!=null?s.t.toFixed(1)+' °C':'';
+  let msg='';
+  switch(a.state){
+    case 'disabled':msg='Off. The fan keeps running until you or the timer stop it.';break;
+    case 'nosensor':msg='Pick a thermometer to use.';break;
+    case 'stale':msg='<b>Paused</b>: no recent reading from '+name+'. The fan is left as it is.';break;
+    case 'idle':msg='Fan is off. Watching '+name+(t?' ('+t+')':'')+'.';break;
+    case 'armed':msg='Watching '+name+': <b>'+t+'</b>. Turns off below '+c.ao_temp.toFixed(1)+' °C.';break;
+    case 'counting':msg='<b>'+name+' is at '+t+'</b>, below '+c.ao_temp.toFixed(1)+' °C. Turning off in '+dur(a.wait)+' unless it warms up.';break;
+    case 'tripped':msg='Turned off by the rule'+(c.ar?'. Will turn back on at '+c.ar_temp.toFixed(1)+' °C.':'.');break;
+    case 'resuming':msg=name+' is at '+t+'. Turning back on in '+dur(a.wait)+'.';break;
+  }
+  if(a.event){
+    const when=hm(new Date(Date.now()-a.event_ago*1000));
+    const what={auto_off:'Auto off at '+when+' ('+a.event_temp.toFixed(1)+' °C)',auto_on:'Auto on at '+when+' ('+a.event_temp.toFixed(1)+' °C)',timer:'Timer stopped the fan at '+when}[a.event];
+    msg+='<div class="muted" style="margin-top:4px">Last: '+what+'</div>';
+  }
+  return msg;
+}
+
+/* ---------- render ---------- */
+function render(st){
+  S=st;
+  const c=st.cfg,n=st.sys.net;
+  // header
+  const netTxt={connected:'Wi-Fi '+n.rssi+' dBm',connecting:'Connecting…',setup:'Setup AP',fallback:'Wi-Fi lost · AP on'}[n.state];
+  $('net').textContent=netTxt;$('net').classList.remove('off');
+  $('setup').style.display=(n.state==='setup'||n.state==='fallback')?'block':'none';
+
+  // fan
+  $('power').classList.toggle('on',st.power);
+  $('power').setAttribute('aria-pressed',st.power);
+  $('fanState').textContent=st.power?(st.mode==='pwm'?'PWM':'Speed '+st.speed):'Off';
+  $('fanSub').textContent=st.power?st.hz+' Hz'+(st.swing?' · swing':''):(st.mode==='pwm'?'PWM '+st.pwm+' Hz':'Speed '+st.speed)+' when on';
+  $('modePreset').classList.toggle('sel',st.mode==='preset');
+  $('modePwm').classList.toggle('sel',st.mode==='pwm');
+  speedsEl.classList.toggle('hidden',st.mode!=='preset');
+  $('pwmPanel').classList.toggle('hidden',st.mode!=='pwm');
+  for(let i=1;i<=4;i++){
+    const b=$('sp'+i);b.classList.toggle('sel',st.mode==='preset'&&st.speed===i&&st.power);
+    b.querySelector('span').textContent=c.presets[i-1]+' Hz';
+  }
+  pwm.min=c.pwm_min;pwm.max=c.pwm_max;
+  if(!dragging){pwm.value=st.pwm;showPwm(st.pwm)}
+  $('pwmMinL').textContent=c.pwm_min+' Hz';$('pwmMaxL').textContent=c.pwm_max+' Hz';
+  if(!editing($('pwmMin')))$('pwmMin').value=c.pwm_min;
+  if(!editing($('pwmMax')))$('pwmMax').value=c.pwm_max;
+  $('pwmMin').min=$('pwmMax').min=c.pwm_floor;$('pwmMin').max=$('pwmMax').max=c.pwm_limit;
+  $('pwmHint').textContent='Allowed '+c.pwm_floor+'–'+c.pwm_limit+' Hz. Presets: '+c.presets.join(' / ')+' Hz.';
+  $('swing').checked=st.swing;
+
+  // timer
+  if(st.timer){
+    $('timerState').textContent='Off in '+dur(st.timer);
+    $('timerSub').textContent='at '+hm(new Date(Date.now()+st.timer*1000));
+  }else{
+    $('timerState').textContent='No timer';
+    $('timerSub').textContent=st.power?'':'Starting a timer turns the fan on';
+  }
+  $('timerCancel').classList.toggle('hidden',!st.timer);
+
+  // sensors
+  const sens=[...st.sensors].sort((a,b)=>(b.saved-a.saved)||a.name.localeCompare(b.name));
+  $('noSensors').classList.toggle('hidden',sens.length>0);
+  $('chartBox').classList.toggle('hidden',sens.length===0);
+  if(!sens.find(s=>s.mac===viewMac)){
+    const pick=(sens.find(s=>s.mac===c.sensor)||sens[0]);
+    if(pick)selectView(pick.mac,false);
+  }
+  $('rooms').innerHTML=sens.map(s=>{
+    const stale=s.age==null||s.age>600;
+    return '<button class="room'+(s.mac===viewMac?' sel':'')+(stale?' stale':'')+'" data-mac="'+s.mac+'">'+
+      '<div class="n">'+esc(s.name)+'</div>'+
+      '<div class="t">'+(s.t!=null?s.t.toFixed(1)+'°':'—')+'</div>'+
+      '<div class="h">'+(s.h!=null?s.h.toFixed(0)+'% RH':'')+(s.age!=null?' · '+ago(s.age):'')+'</div></button>';
+  }).join('');
+  $('rooms').querySelectorAll('.room').forEach(b=>b.onclick=()=>selectView(b.dataset.mac,true));
+
+  // auto-off
+  $('ao').checked=c.ao;
+  $('aoBody').style.opacity=c.ao?1:.55;
+  const selEl=$('aoSensor');
+  if(!editing(selEl)){
+    selEl.innerHTML='<option value="">— none —</option>'+sens.map(s=>'<option value="'+s.mac+'">'+esc(s.name)+'</option>').join('')+
+      (c.sensor&&!sens.find(s=>s.mac===c.sensor)?'<option value="'+c.sensor+'">'+c.sensor+' (not heard)</option>':'');
+    selEl.value=c.sensor;
+  }
+  if(!editing($('aoTemp')))$('aoTemp').value=c.ao_temp.toFixed(1);
+  if(!editing($('arTemp')))$('arTemp').value=c.ar_temp.toFixed(1);
+  if(!editing($('hold')))$('hold').value=c.hold;
+  $('ar').checked=c.ar;
+  $('aoStatus').innerHTML=autoText();
+
+  // settings
+  const ed=$('sensorEdit');
+  if(!ed.contains(document.activeElement)){
+    ed.innerHTML=sens.length?sens.map(s=>
+      '<div class="sensor-edit"><input type="text" maxlength="23" value="'+esc(s.name)+'" data-mac="'+s.mac+'" aria-label="Name of '+s.mac+'">'+
+      '<button data-save="'+s.mac+'">Save</button>'+(s.saved?'<button class="link danger" data-forget="'+s.mac+'">Forget</button>':'')+'</div>'+
+      '<div class="small muted" style="margin:-4px 0 6px">'+s.mac+' · '+(s.fmt||'?')+' · '+s.rssi+' dBm'+(s.mv?' · '+(s.mv/1000).toFixed(2)+' V':'')+(s.b!=null?' · '+s.b+'%':'')+'</div>'
+    ).join(''):'<div class="small muted">None yet.</div>';
+    ed.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>renameSensor(b.dataset.save));
+    ed.querySelectorAll('[data-forget]').forEach(b=>b.onclick=()=>forgetSensor(b.dataset.forget));
+  }
+  $('wifiInfo').innerHTML='<dt>Status</dt><dd>'+esc(n.state)+'</dd>'+
+    (n.ssid?'<dt>Network</dt><dd>'+esc(n.ssid)+'</dd>':'')+
+    (n.ip?'<dt>Address</dt><dd>'+n.ip+' · '+esc(n.host)+'.local</dd>':'')+
+    (n.ap?'<dt>Setup AP</dt><dd>'+esc(n.ap_ssid)+' · 192.168.4.1</dd>':'');
+  $('sysInfo').innerHTML='<dt>Version</dt><dd>'+esc(st.sys.ver)+' (IDF '+esc(st.sys.idf)+')</dd>'+
+    '<dt>Uptime</dt><dd>'+dur(st.sys.up)+'</dd><dt>Free heap</dt><dd>'+Math.round(st.sys.heap/1024)+' kB (min '+Math.round(st.sys.heap_min/1024)+' kB)</dd>';
+}
+
+/* ---------- sensors & history ---------- */
+function selectView(mac,user){
+  if(viewMac===mac&&H)return;
+  viewMac=mac;localStorage.setItem('viewMac',mac);H=null;hover=-1;
+  document.querySelectorAll('.room').forEach(b=>b.classList.toggle('sel',b.dataset.mac===mac));
+  loadHistory();
+}
+async function loadHistory(){
+  if(!viewMac)return;
+  try{
+    const h=await api('/api/history?mac='+encodeURIComponent(viewMac));
+    const now=Date.now(),n=h.t.length;
+    h.time=h.t.map((_,i)=>now-(h.age+(n-1-i)*h.interval)*1000);
+    h.mac=viewMac;H=h;draw();
+    if($('tableBox').open)renderTable();
+  }catch(e){H=null;draw()}
+}
+async function renameSensor(mac){
+  const inp=document.querySelector('#sensorEdit input[data-mac="'+mac+'"]');
+  try{render(await api('/api/sensor',{mac,name:inp.value.trim()}));toast('Saved')}catch(e){toast(e.message)}
+}
+async function forgetSensor(mac){
+  if(!confirm('Forget '+sensorName(mac)+'? It will reappear unnamed if it is still nearby.'))return;
+  try{render(await api('/api/sensor',{mac,forget:1}))}catch(e){toast(e.message)}
+}
+
+[[6,'6 h'],[12,'12 h'],[24,'24 h']].forEach(([h,l])=>{
+  const b=document.createElement('button');b.textContent=l;b.dataset.h=h;
+  b.onclick=()=>{rangeH=h;localStorage.setItem('rangeH',h);markRange();draw()};$('ranges').appendChild(b);
+});
+function markRange(){$('ranges').querySelectorAll('button').forEach(b=>b.classList.toggle('sel',+b.dataset.h===rangeH))}
+markRange();
+
+/* ---------- chart ---------- */
+const PAD_L=34,PAD_R=44;
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function visible(){
+  if(!H)return null;
+  const from=Date.now()-rangeH*3600e3;let i0=H.time.findIndex(t=>t>=from);if(i0<0)i0=H.time.length;
+  return {i0,n:H.time.length,from,to:Date.now()};
+}
+function setupCanvas(cv){
+  const dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=+cv.getAttribute('height');
+  if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px'}
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);return {g,w,h};
+}
+function niceRange(lo,hi,step){
+  if(!isFinite(lo)){lo=0;hi=step*4}
+  lo=Math.floor(lo/step)*step;hi=Math.ceil(hi/step)*step;if(hi-lo<step*2){lo-=step;hi+=step}
+  let st=step;while((hi-lo)/st>5)st*=2;lo=Math.floor(lo/st)*st;hi=Math.ceil(hi/st)*st;
+  return {lo,hi,st};
+}
+function lane(cv,vals,color,unit,step,refs){
+  const {g,w,h}=setupCanvas(cv),v=visible(),top=8,bot=h-6;
+  const xs=t=>PAD_L+(t-v.from)/(v.to-v.from)*(w-PAD_L-PAD_R);
+  let lo=Infinity,hi=-Infinity;
+  for(let i=v.i0;i<v.n;i++){const y=vals[i];if(y!=null){lo=Math.min(lo,y);hi=Math.max(hi,y)}}
+  refs.forEach(r=>{lo=Math.min(lo,r.v);hi=Math.max(hi,r.v)});
+  const R=niceRange(lo,hi,step),ys=y=>bot-(y-R.lo)/(R.hi-R.lo)*(bot-top);
+  // grid
+  g.font='11px system-ui,sans-serif';g.textBaseline='middle';g.textAlign='right';
+  for(let y=R.lo;y<=R.hi+1e-9;y+=R.st){
+    g.strokeStyle=css('--grid');g.lineWidth=1;g.beginPath();g.moveTo(PAD_L,Math.round(ys(y))+.5);g.lineTo(w-PAD_R,Math.round(ys(y))+.5);g.stroke();
+    g.fillStyle=css('--ink3');g.fillText(+y.toFixed(1),PAD_L-6,ys(y));
+  }
+  vgrid(g,xs,top,bot,v);
+  // reference lines
+  refs.forEach(r=>{
+    g.strokeStyle=css('--ink3');g.setLineDash([4,4]);g.lineWidth=1;g.beginPath();g.moveTo(PAD_L,ys(r.v));g.lineTo(w-PAD_R,ys(r.v));g.stroke();g.setLineDash([]);
+    g.fillStyle=css('--ink2');g.textAlign='left';g.fillText(r.label,w-PAD_R+4,ys(r.v));g.textAlign='right';
+  });
+  // series
+  g.strokeStyle=color;g.lineWidth=2;g.lineJoin='round';g.lineCap='round';g.beginPath();
+  let pen=false,last=-1;
+  for(let i=v.i0;i<v.n;i++){
+    const y=vals[i];if(y==null){pen=false;continue}
+    const X=xs(H.time[i]),Y=ys(y);if(pen)g.lineTo(X,Y);else{g.moveTo(X,Y);pen=true}last=i;
+  }
+  g.stroke();
+  if(last>=0){
+    // end marker + direct label (text in ink, the dot carries identity)
+    const X=xs(H.time[last]),Y=ys(vals[last]);
+    g.fillStyle=css('--card');g.beginPath();g.arc(X,Y,5,0,7);g.fill();
+    g.fillStyle=color;g.beginPath();g.arc(X,Y,4,0,7);g.fill();
+    if(!refs.some(r=>Math.abs(ys(r.v)-Y)<12)){g.fillStyle=css('--ink');g.textAlign='left';g.font='600 12px system-ui,sans-serif';g.fillText(vals[last].toFixed(1)+unit,X+8,Y)}
+  }
+  crosshair(g,xs,top,bot,vals,ys,color);
+}
+function vgrid(g,xs,top,bot,v,labels){
+  const stepH=rangeH<=6?1:rangeH<=12?2:4,d=new Date(v.from);d.setMinutes(0,0,0);
+  while(d.getTime()<v.from||d.getHours()%stepH)d.setHours(d.getHours()+1);
+  g.strokeStyle=css('--grid');g.lineWidth=1;g.fillStyle=css('--ink3');g.textAlign='center';g.textBaseline='top';
+  let lastR=-Infinity;
+  for(;d.getTime()<=v.to;d.setHours(d.getHours()+stepH)){
+    const X=Math.round(xs(d.getTime()))+.5;g.beginPath();g.moveTo(X,top);g.lineTo(X,bot);g.stroke();
+    if(labels){
+      // skip labels that would collide (long 12 h formats on narrow screens)
+      const txt=d.toLocaleTimeString([],{hour:'numeric'}),tw=g.measureText(txt).width;
+      if(X-tw/2>lastR+8){g.fillText(txt,X,bot+4);lastR=X+tw/2}
+    }
+  }
+  g.textBaseline='middle';g.textAlign='right';
+}
+function crosshair(g,xs,top,bot,vals,ys,color){
+  if(hover<0||!H)return;
+  const X=xs(H.time[hover]);
+  g.strokeStyle=css('--ink3');g.lineWidth=1;g.beginPath();g.moveTo(X,top-4);g.lineTo(X,bot);g.stroke();
+  if(vals&&vals[hover]!=null){const Y=ys(vals[hover]);g.fillStyle=css('--card');g.beginPath();g.arc(X,Y,6,0,7);g.fill();g.fillStyle=color;g.beginPath();g.arc(X,Y,4,0,7);g.fill()}
+}
+function fanLane(cv){
+  const {g,w,h}=setupCanvas(cv),v=visible(),top=2,bot=h-18;
+  const xs=t=>PAD_L+(t-v.from)/(v.to-v.from)*(w-PAD_L-PAD_R);
+  g.font='11px system-ui,sans-serif';
+  vgrid(g,xs,top,bot,v,true);
+  const max=Math.max(1,...H.f),bw=Math.max(1,(w-PAD_L-PAD_R)*H.interval*1000/(v.to-v.from));
+  g.fillStyle=css('--fan');
+  for(let i=v.i0;i<v.n;i++){
+    if(!H.f[i])continue;const hh=4+(bot-top-4)*H.f[i]/max,X=xs(H.time[i]);
+    g.fillRect(X-bw,bot-hh,bw,hh);
+  }
+  g.strokeStyle=css('--line');g.beginPath();g.moveTo(PAD_L,bot+.5);g.lineTo(w-PAD_R,bot+.5);g.stroke();
+  crosshair(g,xs,top,bot);
+}
+function draw(){
+  const v=visible(),has=H&&H.t.slice(v.i0).some(x=>x!=null);
+  $('chart').classList.toggle('hidden',!has);
+  $('chartEmpty').classList.toggle('hidden',!!has);
+  if(!has){
+    $('chartEmpty').textContent=!H?'Loading…':'Collecting data. A point is recorded every '+dur(S?S.hist_interval:120)+'.';
+    return;
+  }
+  const t=H.t.map(x=>x==null?null:x/100),h=H.h.map(x=>x==null?null:x/2);
+  const refs=[];
+  if(S&&S.cfg.ao&&S.cfg.sensor===viewMac){
+    refs.push({v:S.cfg.ao_temp,label:'off'});
+    if(S.cfg.ar)refs.push({v:S.cfg.ar_temp,label:'on'});
+  }
+  lane($('cT'),t,css('--temp'),'°',1,refs);
+  lane($('cH'),h,css('--hum'),'%',5,[]);
+  fanLane($('cF'));
+  const s=S&&S.sensors.find(x=>x.mac===viewMac);
+  $('tNow').textContent=s&&s.t!=null?s.t.toFixed(2)+' °C now':'';
+  $('hNow').textContent=s&&s.h!=null?s.h.toFixed(1)+' % now':'';
+  tooltip();
+}
+function tooltip(){
+  const tip=$('tip');
+  if(hover<0||!H){tip.style.display='none';return}
+  const t=H.t[hover],h=H.h[hover],f=H.f[hover],d=new Date(H.time[hover]);
+  tip.innerHTML='<div class="muted" style="margin-bottom:4px">'+d.toLocaleString([],{weekday:'short',hour:'2-digit',minute:'2-digit'})+'</div>'+
+    '<div><i style="background:'+css('--temp')+'"></i>'+(t==null?'—':(t/100).toFixed(2)+' °C')+'</div>'+
+    '<div><i style="background:'+css('--hum')+'"></i>'+(h==null?'—':(h/2).toFixed(1)+' %')+'</div>'+
+    '<div><i style="background:'+css('--fan')+'"></i>'+(f?'Fan '+f*4+' Hz':'Fan off')+'</div>';
+  tip.style.display='block';
+  const box=$('chart').getBoundingClientRect(),w=$('cT').clientWidth,v=visible();
+  const X=PAD_L+(H.time[hover]-v.from)/(v.to-v.from)*(w-PAD_L-PAD_R);
+  const tw=tip.offsetWidth;tip.style.left=Math.min(Math.max(0,X+12+tw>box.width?X-tw-12:X+12),box.width-tw)+'px';tip.style.top='26px';
+}
+function pick(e){
+  if(!H)return;const v=visible(),r=$('cT').getBoundingClientRect(),w=r.width;
+  const t=v.from+(e.clientX-r.left-PAD_L)/(w-PAD_L-PAD_R)*(v.to-v.from);
+  let best=-1,bd=Infinity;
+  for(let i=v.i0;i<v.n;i++){const d=Math.abs(H.time[i]-t);if(d<bd){bd=d;best=i}}
+  if(best!==hover){hover=best;draw()}
+}
+const ch=$('chart');
+ch.addEventListener('pointermove',pick);
+ch.addEventListener('pointerdown',pick);
+ch.addEventListener('pointerleave',()=>{hover=-1;draw()});
+window.addEventListener('resize',()=>draw());
+
+function renderTable(){
+  if(!H){$('table').innerHTML='';return}
+  const v=visible(),rows=[];
+  for(let i=v.n-1;i>=v.i0;i--){
+    rows.push('<tr><td>'+hm(new Date(H.time[i]))+'</td><td>'+(H.t[i]==null?'—':(H.t[i]/100).toFixed(2))+'</td><td>'+(H.h[i]==null?'—':(H.h[i]/2).toFixed(1))+'</td><td>'+(H.f[i]?H.f[i]*4:'off')+'</td></tr>');
+  }
+  $('table').innerHTML='<table><thead><tr><th>Time</th><th>°C</th><th>% RH</th><th>Fan Hz</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+}
+
+/* ---------- wifi / system ---------- */
+function openWifi(){$('settings').open=true;$('wifiBox').scrollIntoView({behavior:'smooth'});scanWifi()}
+async function scanWifi(){
+  const b=$('scanBtn');b.disabled=true;b.textContent='Scanning…';
+  try{
+    const list=await api('/api/wifi/scan'),seen=new Set();
+    $('ssids').innerHTML=list.filter(a=>a.ssid&&!seen.has(a.ssid)&&seen.add(a.ssid)).map(a=>
+      '<button data-ssid="'+esc(a.ssid)+'"><span>'+esc(a.ssid)+'</span><span class="muted small">'+a.rssi+' dBm'+(a.secure?' · locked':'')+'</span></button>').join('')||'<div class="small muted">Nothing found. Try again.</div>';
+    $('ssids').querySelectorAll('button').forEach(x=>x.onclick=()=>{$('ssid').value=x.dataset.ssid;$('pass').focus()});
+  }catch(e){toast(e.message)}
+  b.disabled=false;b.textContent='Scan networks';
+}
+async function saveWifi(){
+  const ssid=$('ssid').value.trim();if(!ssid){toast('Enter the network name');return}
+  try{await api('/api/wifi',{ssid,pass:$('pass').value});
+    toast('Saved. Restarting… then open http://'+S.sys.net.host+'.local');}catch(e){toast(e.message)}
+}
+async function forgetWifi(){
+  if(!confirm('Forget Wi-Fi and restart into setup mode?'))return;
+  try{await api('/api/wifi',{forget:1});toast('Restarting into setup mode…')}catch(e){toast(e.message)}
+}
+async function reboot(){if(confirm('Restart the fan controller?')){await api('/api/reboot',{}).catch(()=>{});toast('Restarting…')}}
+function uploadFw(){
+  const f=$('fw').files[0];if(!f){toast('Choose a .bin file first');return}
+  const x=new XMLHttpRequest(),p=$('fwProg');p.classList.remove('hidden');p.value=0;
+  x.upload.onprogress=e=>{if(e.lengthComputable)p.value=100*e.loaded/e.total};
+  x.onload=()=>{if(x.status===200){toast('Updated. Restarting…');setTimeout(()=>location.reload(),8000)}else{toast(x.responseText||'Update failed');p.classList.add('hidden')}};
+  x.onerror=()=>{toast('Upload failed');p.classList.add('hidden')};
+  x.open('POST','/api/ota');x.send(f);
+}
+
+/* ---------- loop ---------- */
+let fails=0;
+async function poll(){
+  try{const st=await api('/api/state');fails=0;if(!dragging)render(st);if(H)draw()}
+  catch(e){if(++fails>1){$('net').textContent='Offline';$('net').classList.add('off')}}
+}
+setInterval(()=>{if(!document.hidden)poll()},2000);
+setInterval(()=>{if(!document.hidden)loadHistory()},60000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){poll();loadHistory()}});
+poll();
+</script>
+</body>
+</html>

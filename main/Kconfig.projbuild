@@ -1,0 +1,117 @@
+menu "Open Fan Configuration"
+
+    choice FAN_BOARD
+        prompt "Board"
+        default FAN_BOARD_ESP32C3_FAN_V1
+        config FAN_BOARD_ESP32C3_FAN_V1
+            bool "ESP32C3-Dev-Fan-V1"
+    endchoice
+
+    menu "Network"
+        config FAN_HOSTNAME
+            string "Hostname (mDNS: <hostname>.local)"
+            default "fan"
+
+        config FAN_WIFI_SSID
+            string "Default Wi-Fi SSID"
+            default ""
+            help
+                Used only when no credentials were saved from the web UI.
+                Leave empty to start in setup (access point) mode.
+
+        config FAN_WIFI_PASSWORD
+            string "Default Wi-Fi password"
+            default ""
+
+        config FAN_AP_PASSWORD
+            string "Setup access point password"
+            default "smartfan"
+            help
+                WPA2 password of the "OpenFan-XXXX" setup access point. At least
+                8 characters, or empty for an open access point.
+
+        config FAN_STATIC_IP
+            bool "Use a static IP address on the Wi-Fi network"
+            default y
+            help
+                Skip DHCP and use the address below. Phones that cannot resolve
+                <hostname>.local (Android) can then always use the same URL.
+                The address must be free and outside the router's DHCP pool.
+
+        config FAN_STATIC_IP_ADDR
+            string "Static IP address"
+            default "192.168.1.123"
+            depends on FAN_STATIC_IP
+
+        config FAN_STATIC_NETMASK
+            string "Netmask"
+            default "255.255.255.0"
+            depends on FAN_STATIC_IP
+
+        config FAN_STATIC_GW
+            string "Gateway (router address)"
+            default "192.168.1.1"
+            depends on FAN_STATIC_IP
+
+        config FAN_STA_FALLBACK_S
+            int "Start setup AP after this many seconds without Wi-Fi"
+            default 60
+            range 10 3600
+    endmenu
+
+    menu "Fan output"
+        config FAN_PWM_DUTY
+            int "Speed signal duty (10-bit, output inverted)"
+            default 110
+            range 1 1023
+
+        config FAN_SPEED1_HZ
+            int "Speed 1 frequency (Hz)"
+            default 200
+        config FAN_SPEED2_HZ
+            int "Speed 2 frequency (Hz)"
+            default 250
+        config FAN_SPEED3_HZ
+            int "Speed 3 frequency (Hz)"
+            default 300
+        config FAN_SPEED4_HZ
+            int "Speed 4 frequency (Hz)"
+            default 350
+
+        config FAN_PWM_HZ_FLOOR
+            int "Lowest frequency the PWM slider may be set to (Hz)"
+            default 50
+            range 20 1000
+
+        config FAN_PWM_HZ_LIMIT
+            int "Highest frequency the PWM slider may be set to (Hz)"
+            default 1000
+            range 100 5000
+            help
+                Hard safety limit. The slider maximum configured in the web UI
+                can never exceed this value.
+    endmenu
+
+    menu "Thermometers"
+        config FAN_SENSOR_MAX
+            int "Maximum number of tracked thermometers"
+            default 8
+            range 1 16
+
+        config FAN_HISTORY_INTERVAL_S
+            int "History sample interval (seconds)"
+            default 120
+            range 30 900
+
+        config FAN_HISTORY_HOURS
+            int "History length (hours)"
+            default 24
+            range 1 72
+
+        config FAN_SENSOR_STALE_S
+            int "Reading is considered stale after (seconds)"
+            default 600
+            range 60 3600
+    endmenu
+
+endmenu

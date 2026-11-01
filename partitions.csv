@@ -1,0 +1,6 @@
+# Name,   Type, SubType, Offset,  Size
+nvs,      data, nvs,     ,        48k
+otadata,  data, ota,     ,        8k
+phy_init, data, phy,     ,        4k
+ota_0,    app,  ota_0,   ,        1856k
+ota_1,    app,  ota_1,   ,        1856k
